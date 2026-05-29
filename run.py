@@ -106,6 +106,7 @@ class Program:
                 Access.store(
                     "reg", variable.load("PC"), val1
                 )  # redirect PC to jump target
+                return "JUMPED"
 
     def getOp(self, inscode):
         # Gets the effective address and storage type from a 10-bit operand code.
@@ -197,7 +198,12 @@ class Program:
             # Execute phase: perform arithmetic or jump
             exec_res = self.execute((op1_val, op2_val), opcode) if e == 1 else None
 
+            # CMP fix: if SUB with w=0 (CMP), store result into JR
+            if e == 1 and w == 0 and int(opcode[2:], 2) == 2:
+                Access.store("reg", variable.load("JR"), exec_res)
+
             # Write phase: store the result into the destination
+            jumped = False
             if w == 1:
                 cat = int(opcode[2:], 2)
                 movecode = (
@@ -205,6 +211,11 @@ class Program:
                 )  # special moves
                 src = exec_res if e == 1 else op2_val  # arithmetic or plain move
                 self.write((op1_addr, op1_type), src, movecode)
+
+            # Jump phase: e=1, w=0, and not CMP (cat != 2)
+            elif e == 1 and w == 0 and int(opcode[2:], 2) != 2:
+                if exec_res == "JUMPED":
+                    jumped = True
 
             # Print phase: E=0 and W=0 → PRNT operation
             elif e == 0 and w == 0:
@@ -223,11 +234,11 @@ class Program:
                         print(Instruction.decodeMSG(str(msg)), end="")
 
             # Advance fetch: copy PC into IR, then increment PC for the next instruction
-            pc_addr = variable.load("PC")
-            pc_val = register.load(pc_addr)
-            register.store(variable.load("IR"), pc_val)  # IR = PC
-            register.store(pc_addr, pc_val + 1)  # PC++
-
+            if not jumped:
+                pc_addr = variable.load("PC")
+                pc_val = register.load(pc_addr)
+                register.store(variable.load("IR"), pc_val)
+                register.store(pc_addr, pc_val + 1)
 
 div_zero = Except("Division by Zero", occur=False)
 

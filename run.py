@@ -212,7 +212,9 @@ class Program:
                     msg_key = int(op2_val) if isinstance(op2_val, (int, float)) else None
                     if msg_key is not None and msg_key in variable.data["MSG"]:
                         print(Instruction.decodeMSG(variable.data["MSG"][msg_key]), end="")
-                        print(op1_val, end="")
+                        # If there is a real operand, print its value after the message.
+                        if op1_addr != 0 or op1_type != register:
+                            print(op1_val, end="")
                     else:
                         msg = variable.data["MSG"].get(msg_key, str(op1_val))
                         print(Instruction.decodeMSG(str(msg)), end="")

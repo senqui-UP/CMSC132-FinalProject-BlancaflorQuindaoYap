@@ -116,16 +116,21 @@ class Instruction:
         op1 = '0' * 10
         op2 = '0' * 15
 
-        if len(parts) > 1:
-            op1 = Instruction.encodeOp(parts[1])
-        if len(parts) > 2:
-            operand = parts[2]
-            if operand.startswith('M:') or Instruction.isImmediateOperand(operand):
-                ib = '1'
-                op2 = Instruction.encodeImmediate(operand)
-            else:
-                rb = '0'
-                op2 = Instruction.encodeOp(operand) + '0' * 5
+        # Support pure message printing
+        if op == 'PRNT' and len(parts) == 2 and parts[1].startswith('M:'):
+            ib = '1'
+            op2 = Instruction.encodeImmediate(parts[1])
+        else:
+            if len(parts) > 1:
+                op1 = Instruction.encodeOp(parts[1])
+            if len(parts) > 2:
+                operand = parts[2]
+                if operand.startswith('M:') or Instruction.isImmediateOperand(operand):
+                    ib = '1'
+                    op2 = Instruction.encodeImmediate(operand)
+                else:
+                    rb = '0'
+                    op2 = Instruction.encodeOp(operand) + '0' * 5
 
         inscode = opcode + ib + op1 + rb + op2
         return inscode

@@ -137,7 +137,7 @@ class Instruction:
             return '0' * 32
         parts = inst.split()
         op = parts[0].upper()
-        if op == 'FUNC':
+        if op == 'EOP':
             return '0' * 32
         opcode = ''
         for i in range(len(operations)):

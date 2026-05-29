@@ -2,23 +2,57 @@ from bin_convert import HalfPrecision, Length
 from storage import memory, register, variable
 
 operations = [
-    ['PRNT', 'EOP', 'FUNC'],
-    ['MOV', 'ADDPC', 'CALL', 'RET', 'SCAN'],
-    ['JEQ', 'JNE', 'JLT', 'JLE', 'JGT', 'JGE', 'JMP'],
-    ['MOD', 'ADD', 'CB', 'CF'],
-    ['SUB', 'CMP'],
+    ['PRNT'],
+    ['EOP'],
+    ['FUNC'],
+    ['MOV'],
+    ['ADDPC'],
+    ['CALL'],
+    ['RET'],
+    ['SCAN'],
+    ['JEQ'],
+    ['JNE'],
+    ['JLT'],
+    ['JLE'],
+    ['JGT'],
+    ['JGE'],
+    ['JMP'],
+    ['MOD'],
+    ['ADD'],
+    ['CB'],
+    ['CF'],
+    ['SUB'],
+    ['CMP'],
     ['MUL'],
     ['DIV']
 ]
+
 operationCodes = [
-    '00000',
-    '01000',
-    '10000',
-    '11001',
-    '11010',
-    '11011',
-    '11100'
+    '00000',  # PRNT
+    '00001',  # EOP
+    '00001',  # FUNC (same as EOP per spec)
+    '01000',  # MOV
+    '01000',  # ADDPC (same category as MOV)
+    '01001',  # CALL
+    '01010',  # RET
+    '01011',  # SCAN
+    '10000',  # JEQ
+    '10001',  # JNE
+    '10010',  # JLT
+    '10011',  # JLE
+    '10100',  # JGT
+    '10101',  # JGE
+    '10110',  # JMP
+    '11000',  # MOD
+    '11001',  # ADD
+    '11001',  # CB (same category as ADD)
+    '11001',  # CF (same category as ADD)
+    '11010',  # SUB
+    '11010',  # CMP (same category as SUB)
+    '11011',  # MUL
+    '11100'   # DIV
 ]
+
 class Instruction:
     @staticmethod
     def decodeMSG(msg):

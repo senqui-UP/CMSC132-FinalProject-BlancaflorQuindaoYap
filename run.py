@@ -74,7 +74,7 @@ class Program:
         if w == 1:
             # Arithmetic: select operation by category code
             if cat == 0:
-                return val1 % val2  # MOD: remainder
+                return int(val1) % int(val2)  # MOD: remainder
             if cat == 1:
                 return val1 + val2  # ADD: addition
             if cat == 2:
@@ -211,10 +211,13 @@ class Program:
                 if int(opcode[2:], 2) == 0:  # category 0 = PRNT
                     msg_key = int(op2_val) if isinstance(op2_val, (int, float)) else None
                     if msg_key is not None and msg_key in variable.data["MSG"]:
-                        print(Instruction.decodeMSG(variable.data["MSG"][msg_key]), end="")
-                        # If there is a real operand, print its value after the message.
-                        if op1_addr != 0 or op1_type != register:
-                            print(op1_val, end="")
+                        decoded = Instruction.decodeMSG(variable.data["MSG"][msg_key])
+                        if "{}" in decoded:
+                            print(decoded.format(op1_val), end="")
+                        else:
+                            print(decoded, end="")
+                            if op1_addr != 0 or op1_type != register:
+                                print(op1_val, end="")
                     else:
                         msg = variable.data["MSG"].get(msg_key, str(op1_val))
                         print(Instruction.decodeMSG(str(msg)), end="")
@@ -229,9 +232,10 @@ class Program:
 div_zero = Except("Division by Zero", occur=False)
 
 # Prompt for a program file, read the instructions, and then execute the loaded program
-filename = input("Enter filename: ")
-with open(filename, "r") as f:
-    program = f.readlines()
-program = [line.strip() for line in program]
-prog = Program(program)
-prog.run()
+if __name__ == "__main__":
+    filename = input("Enter filename: ")
+    with open(filename, "r") as f:
+        program = f.readlines()
+    program = [line.strip() for line in program]
+    prog = Program(program)
+    prog.run()

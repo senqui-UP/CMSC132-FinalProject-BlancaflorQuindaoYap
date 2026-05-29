@@ -1,8 +1,11 @@
-MOV R1 10
-MOV R2 5
-CMP R1 R2
-JGT 15
-PRNT M:not-greater-_
-EOP
-PRNT M:greater-_
+x Test: compare A == B, jump to Equal block if true
+x To compare A vs B: MOV JR A, then CMP B (JR = A - B)
+MOV A 5
+MOV B 5
+MOV JR A
+CMP B
+JEQ B1
+PRNT M:Not-equal-_
+CB B1
+PRNT M:Equal-_
 EOP

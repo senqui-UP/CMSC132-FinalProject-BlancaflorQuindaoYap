@@ -49,6 +49,7 @@ class Program:
                 exc.setReturn("undefined")  # dividing nonzero by 0
             return exc
 
+    # Handle storing results (Write Operation)
     def write(self, dest, src, movecode):
         # Performs the write operation; movecode triggers special pre-write actions.
         if movecode == 1:
@@ -106,7 +107,6 @@ class Program:
                 Access.store(
                     "reg", variable.load("PC"), val1
                 )  # redirect PC to jump target
-                return "JUMPED"
 
     def getOp(self, inscode):
         # Gets the effective address and storage type from a 10-bit operand code.
@@ -167,6 +167,9 @@ class Program:
             # Resolve operand 1 into address, value, and storage type
             res1 = self.getOp(op1)
             op1_addr, op1_val, op1_type = res1 if len(res1) == 3 else (*res1, "mem")
+            # normalize storage type: AddressingMode.register() returns the object, convert to string
+            if op1_type not in ("reg", "mem"):
+                op1_type = "reg" 
 
             # Resolve operand 2 based on ib and rb flags
             op2_val = None
@@ -198,12 +201,7 @@ class Program:
             # Execute phase: perform arithmetic or jump
             exec_res = self.execute((op1_val, op2_val), opcode) if e == 1 else None
 
-            # CMP fix: if SUB with w=0 (CMP), store result into JR
-            if e == 1 and w == 0 and int(opcode[2:], 2) == 2:
-                Access.store("reg", variable.load("JR"), exec_res)
-
             # Write phase: store the result into the destination
-            jumped = False
             if w == 1:
                 cat = int(opcode[2:], 2)
                 movecode = (
@@ -212,33 +210,24 @@ class Program:
                 src = exec_res if e == 1 else op2_val  # arithmetic or plain move
                 self.write((op1_addr, op1_type), src, movecode)
 
-            # Jump phase: e=1, w=0, and not CMP (cat != 2)
-            elif e == 1 and w == 0 and int(opcode[2:], 2) != 2:
-                if exec_res == "JUMPED":
-                    jumped = True
-
             # Print phase: E=0 and W=0 → PRNT operation
             elif e == 0 and w == 0:
                 if int(opcode[2:], 2) == 0:  # category 0 = PRNT
                     msg_key = int(op2_val) if isinstance(op2_val, (int, float)) else None
-                    if msg_key is not None and msg_key in variable.data["MSG"]:
-                        decoded = Instruction.decodeMSG(variable.data["MSG"][msg_key])
-                        if "{}" in decoded:
-                            print(decoded.format(op1_val), end="")
-                        else:
-                            print(decoded, end="")
-                            if op1_addr != 0 or op1_type != register:
-                                print(op1_val, end="")
-                    else:
-                        msg = variable.data["MSG"].get(msg_key, str(op1_val))
-                        print(Instruction.decodeMSG(str(msg)), end="")
+                    has_msg = msg_key is not None and msg_key in variable.data["MSG"]
+                    # print message if present
+                    if has_msg:
+                        print(Instruction.decodeMSG(variable.data["MSG"][msg_key]), end="")
+                    # print variable value only if op1 is a real variable (addr > 0)
+                    if op1_addr and op1_addr != 0:
+                        print(op1_val, end="")
 
             # Advance fetch: copy PC into IR, then increment PC for the next instruction
-            if not jumped:
-                pc_addr = variable.load("PC")
-                pc_val = register.load(pc_addr)
-                register.store(variable.load("IR"), pc_val)
-                register.store(pc_addr, pc_val + 1)
+            pc_addr = variable.load("PC")
+            pc_val = register.load(pc_addr)
+            register.store(variable.load("IR"), pc_val)  # IR = PC
+            register.store(pc_addr, pc_val + 1)  # PC++
+
 
 div_zero = Except("Division by Zero", occur=False)
 

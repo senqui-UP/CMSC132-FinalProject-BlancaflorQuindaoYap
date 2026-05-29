@@ -79,14 +79,10 @@ class Instruction:
             regnum = operand.replace('R', '')
             addr = bin(int(regnum))[2:].zfill(7)
             return (mode + addr).zfill(10)
-        # Special Registers
-        elif operand == 'PC':
+        # Special Registers: PC, ACC, JR, CR, BR, XR, IR all live in the register file
+        elif operand in ('PC', 'ACC', 'JR', 'CR', 'BR', 'XR', 'IR'):
             mode = '000'
-            addr = bin(variable.load('PC'))[2:].zfill(7)
-            return (mode + addr).zfill(10)
-        elif operand == 'ACC':
-            mode = '000'
-            addr = bin(variable.load('ACC'))[2:].zfill(7)
+            addr = bin(int(variable.load(operand)))[2:].zfill(7)
             return (mode + addr).zfill(10)
         # Message literal operands are handled as immediates in encode()
         elif operand.startswith('M:'):
@@ -137,8 +133,22 @@ class Instruction:
             return '0' * 32
         parts = inst.split()
         op = parts[0].upper()
-        if op == 'EOP':
+
+        # EOP and FUNC are end-of-program sentinels → all zeros
+        if op in ('EOP', 'FUNC'):
             return '0' * 32
+
+        # CMP: rewrite as SUB JR <operand> per PDF spec
+        # CMP A means JR = JR - A; to compare A vs B: MOV JR A then CMP B
+        if op == 'CMP':
+            op = 'SUB'
+            parts = ['SUB', 'JR', parts[1]]
+
+        # CB / CF: rewrite as ADD block BR so the block stores the current BR address
+        if op in ('CB', 'CF'):
+            op = 'ADD'
+            parts = ['ADD', parts[1], 'BR']
+
         opcode = ''
         for i in range(len(operations)):
             if op in operations[i]:
@@ -150,7 +160,7 @@ class Instruction:
         op1 = '0' * 10
         op2 = '0' * 15
 
-        # Support pure message printing
+        # PRNT with only a message (no variable)
         if op == 'PRNT' and len(parts) == 2 and parts[1].startswith('M:'):
             ib = '1'
             op2 = Instruction.encodeImmediate(parts[1])
@@ -194,16 +204,36 @@ class Instruction:
         return hpbin[1:]
     @staticmethod
     def encodeProgram(program):
-        # Load the program starting at the current instruction address (IR),
-        # with PC already pointing to the next instruction.
-        pc = register.load(variable.load('IR'))
+        # Two-pass compiler:
+        # Pass 1: scan all instructions to calculate exact memory addresses for CB/CF blocks
+        # Pass 2: encode all instructions in order; CB/CF become NOPs (JR=JR) at their address
+        start = register.load(variable.load('IR'))  # first instruction memory address
+        in_comment = False
+
+        # Pass 1: calculate addresses 
+        addr = start
+        clean = []      # cleaned instruction list (no blanks/comments)
         for inst in program:
             inst = inst.strip()
-            if inst == '':
+            if not inst: continue
+            if inst[0] == 'z':
+                in_comment = not in_comment
                 continue
-            if inst.startswith('x'):
-                continue
-            code = Instruction.encode(inst)
-            memory.store(pc, code)
-            pc += 1
+            if inst[0] == 'x' or in_comment: continue
+            op = inst.split()[0].upper()
+            if op in ('CB', 'CF'):
+                # block body starts at the instruction AFTER this CB/CF
+                blk_name = inst.split()[1]
+                blk_slot = variable.load(blk_name)      # get the memory slot for this block (e.g. 57 for B1)
+                memory.store(blk_slot, addr + 1)          # store jump target address into that memory slot
+            clean.append(inst)
+            addr += 1   # every instruction takes one memory slot
 
+        # ── Pass 2: encode and store ──────────────────────────────────────────
+        for i, inst in enumerate(clean):
+            op = inst.split()[0].upper()
+            if op in ('CB', 'CF'):
+                code = Instruction.encode('MOV JR JR')  # NOP: block marker, no real action
+            else:
+                code = Instruction.encode(inst)
+            memory.store(start + i, code)

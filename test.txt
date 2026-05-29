@@ -6,6 +6,7 @@ MOV JR A
 CMP B
 JEQ B1
 PRNT M:Not-equal-_
+EOP
 CB B1
 PRNT M:Equal-_
 EOP

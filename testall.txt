@@ -1,0 +1,89 @@
+x ==========================================
+x TEST 1: MOV
+x Expected: prints "A is 10"
+x ==========================================
+MOV A 10
+PRNT M:A-is-
+PRNT A
+PRNT M:-_
+CB B1
+
+x ==========================================
+x TEST 2: ADD - 10 + 5 = 15
+x ==========================================
+MOV A 10
+MOV B 5
+PRNT A M:-_
+PRNT B M:-_
+ADD A B
+PRNT M:ADD-10+5=
+PRNT A
+PRNT M:-_
+CB B2
+
+x ==========================================
+x TEST 3: SUB - 10 - 3 = 7
+x ==========================================
+MOV A 10
+MOV B 3
+SUB A B
+PRNT M:SUB-10-3=
+PRNT A
+PRNT M:-_
+CB B3
+
+x ==========================================
+x TEST 4: MUL - 4 * 3 = 12
+x ==========================================
+MOV A 4
+MOV B 3
+MUL A B
+PRNT M:MUL-4x3=
+PRNT A
+PRNT M:-_
+CB B4
+
+x ==========================================
+x TEST 5: DIV - 10 / 2 = 5
+x ==========================================
+MOV A 10
+MOV B 2
+DIV A B
+PRNT M:DIV-10/2=
+PRNT A
+PRNT M:-_
+CB B5
+
+x ==========================================
+x TEST 6: MOD - 10 mod 3 = 1
+x ==========================================
+MOV A 10
+MOV B 3
+MOD A B
+PRNT M:MOD-10mod3=
+PRNT A
+PRNT M:-_
+CB B6
+
+x ==========================================
+x TEST 7: DIV by zero
+x Expected: prints error then "undefined"
+x ==========================================
+MOV A 5
+MOV B 0
+DIV A B
+PRNT M:DIV-5/0=
+PRNT A
+PRNT M:-_
+CB B7
+
+x ==========================================
+x TEST 8: SCAN + PRNT
+x Expected: prompts user, prints entered value
+x ==========================================
+SCAN A M:Enter-a-number:-
+PRNT M:You-entered:-
+PRNT A
+PRNT M:-_
+
+EOP

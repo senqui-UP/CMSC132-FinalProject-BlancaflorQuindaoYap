@@ -49,3 +49,10 @@ class Program:
             return exc
 
     # file-reading and program instantiation below this class
+
+    filename = input('Enter filename: ')
+    with open(filename, 'r') as f:
+        program = f.readlines()
+    program = [line.strip() for line in program]
+    prog = Program(program)
+    prog.run()

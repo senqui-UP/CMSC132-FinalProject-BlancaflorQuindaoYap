@@ -54,7 +54,10 @@ class Instruction:
             mode = '000'
             addr = bin(variable.load('ACC'))[2:].zfill(7)
             return (mode + addr).zfill(10)
-        # Direct Memory
+        # Message literal operands are handled as immediates in encode()
+        elif operand.startswith('M:'):
+            return '0' * 10
+        # Direct Memory (literal memory address)
         elif operand.startswith('M'):
             mode = '010'
             memaddr = operand.replace('M', '')
@@ -83,32 +86,78 @@ class Instruction:
             else:
                 addr = bin(int(inside))[2:].zfill(7)
             return (mode + addr).zfill(10)
+        # Variable name direct memory (A-H, B1-8, etc.)
+        else:
+            try:
+                memaddr = variable.load(operand)
+                mode = '010'
+                addr = bin(int(memaddr))[2:].zfill(7)
+                return (mode + addr).zfill(10)
+            except Exception:
+                pass
         return '0'.zfill(10)
     @staticmethod
     def encode(inst):
         inst = inst.strip()
         if inst == '':
-            return '0'.zfill(32)
+            return '0' * 32
         parts = inst.split()
         op = parts[0].upper()
         if op == 'FUNC':
-            return '0'.zfill(32)
+            return '0' * 32
         opcode = ''
         for i in range(len(operations)):
             if op in operations[i]:
                 opcode = operationCodes[i]
                 break
-        op1 = ''
-        op2 = ''
+
+        ib = '0'
+        rb = '0'
+        op1 = '0' * 10
+        op2 = '0' * 15
+
         if len(parts) > 1:
             op1 = Instruction.encodeOp(parts[1])
         if len(parts) > 2:
-            op2 = Instruction.encodeOp(parts[2])
-        inscode = opcode + op1 + op2
-        return inscode.zfill(32)
+            operand = parts[2]
+            if operand.startswith('M:') or Instruction.isImmediateOperand(operand):
+                ib = '1'
+                op2 = Instruction.encodeImmediate(operand)
+            else:
+                rb = '0'
+                op2 = Instruction.encodeOp(operand) + '0' * 5
+
+        inscode = opcode + ib + op1 + rb + op2
+        return inscode
+
+    @staticmethod
+    def isImmediateOperand(operand):
+        try:
+            float(operand)
+            return True
+        except Exception:
+            return False
+
+    @staticmethod
+    def encodeImmediate(operand):
+        if isinstance(operand, str) and operand.startswith('M:'):
+            message = operand[2:]
+            index = variable.data.get('MI', 0)
+            variable.data['MSG'][index] = message
+            variable.data['MI'] = index + 1
+            value = index
+        else:
+            try:
+                value = float(operand)
+            except Exception:
+                value = 0
+        hpbin = HalfPrecision.hpdec2bin(value)
+        return hpbin[1:]
     @staticmethod
     def encodeProgram(program):
-        pc = variable.load('PC')
+        # Load the program starting at the current instruction address (IR),
+        # with PC already pointing to the next instruction.
+        pc = register.load(variable.load('IR'))
         for inst in program:
             inst = inst.strip()
             if inst == '':

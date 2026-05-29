@@ -1,0 +1,8 @@
+MOV R1 10
+MOV R2 5
+CMP R1 R2
+JGT 15
+PRNT M:not-greater-_
+EOP
+PRNT M:greater-_
+EOP
